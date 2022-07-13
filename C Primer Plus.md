@@ -46,12 +46,23 @@ int main(void)
 }
 ```
 
-
-
 ---
 ### 第2章
 
-
+- C语言的基本模块是函数
+- #include C语言的与编译器指令（preprocessor directive）
+- 程序包括
+  	1. #include
+   	2. main（）函数
+       - main（）C90勉强接受，C99和C11不允许这样写
+       - void main（）一些编译器允许
+   	3. 注释    /* 注释 */    // 注释
+   	4. 花括号、函数体和块
+   	5. 声明 declaration
+       - 用来声明变量（variable） int cat  int 关键字 cat 标识符 identifier
+  	6. 命名 大小写字母、数字和下划线_
+- 语法错误  不遵循C语言的规则
+- 语义错误  编译器无法检测语义错误
 
 ---
 ### 第3章
