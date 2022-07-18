@@ -100,8 +100,6 @@ verybig= 12345678908642 and not 1942899938
 
 [^1]:现在，个人计算机上最常见的设置是，long long占64位，long占32位，short占16位，int占16位或32位（依计算机的自然字长而定）。原则上，这4种类型代表4种不同的大小，但是在实际使用中有些类型之间通常有重叠。 ↩
 
-。
-
 **字符类型**[^2]
 
 字符用<span style="color:red;background-color:yellow">单引号字母</span>或者<span style="color:red;background-color:yellow">数字</span>进行赋值（ %c）
@@ -172,6 +170,21 @@ int main()
 }
 ```
 
+**十六进制表示的浮点常量**
+
+~~~c
+include <stdio.h>
+int main()
+{
+    float a = 1.234E10f;
+    float b = a / 10;
+    printf("%a\n", b); // 0x1.263562p+30  p表示2的幂
+    printf("%e\n", b); // 1.234000e+009
+}
+~~~
+
+
+
 **类型的大小**
 
 ~~~c
@@ -200,7 +213,7 @@ Type　_Bool　has　a　size　of　1　bytes.
 **什么时候使用long替换int**
 
 	1. 在系统中要表示的数超过了int可表示的范围
- 	2. 如果要处理更大的数，那么使用一种在所有系统上都保证至少是32位的类型，提高程序的可移植性
+	2. 如果要处理更大的数，那么使用一种在所有系统上都保证至少是32位的类型，提高程序的可移植性
 
 **使用哪些可移植的数据类型可以获得32位有符号整数？选择的理由是什么？**
 
@@ -208,6 +221,119 @@ Type　_Bool　has　a　size　of　1　bytes.
 
 ---
 ### 第4章
+
+**字符串**
+
+- 字符串是char类型数组（char [n]），以空字符（\0）结尾，字符数组的容量至少要比待存储的字符串中的字符多
+
+- scanf()在遇到第一个空白（空格、制表符或者换行符）时就不再读取输入，一般来说scanf()只会读取字符串的第一个单词，c语言还有其他的输入函数（如fgets()），用于读取一般字符串。
+
+- 使用头文件`#include <string.h>`中的`strlen()`函数来获取字符串的长度，使用`sizeof`运算符来获取字符数组的长度
+
+    ~~~c
+    #include <stdio.h>
+    #include <string.h>
+    int main(void)
+    {
+        char name[40] = "hello world";;
+        printf("the size of name = %zd,and length of name = %zd",sizeof name,strlen(name));// the size of name = 40,and length of name = 11
+        return 0;
+    }
+    ~~~
+
+
+**printf()**
+
+- 参数传递[^3]
+
+    ~~~c
+    #include <stdio.h>
+    int main(void)
+    {
+        float n1 = 3.0;
+        double n2 = 3.0;
+        long n3 = 2000000000;
+        long n4 = 1234567890;
+        printf("%.1e %.1e %.1e %.1e\n", n1, n2, n3, n4); // 3.0e+000 3.0e+000 9.9e-315 6.1e-315
+        printf("%ld %ld\n", n3, n4);                     // 2000000000 1234567890
+        printf("%ld %ld %ld %ld\n", n1, n2, n3, n4);     // 0 0 2000000000 1234567890   有的实现会因为出现错误
+        return 0;
+    }
+    ~~~
+
+    [^3]:参数传递机制因实现而异，`printf("%ld %ld %ld %ld\n", n1, n2, n3, n4);`该调用告诉计算机把变量n1、n2、、n3和n4的值传递给程序。这是一种常见的参数传递方式。程序把传入的值放入被称为栈（stack）的内存区域。计算机根据变量类型（不是根据转换说明）把这些值放入栈中。因此，n1被储存在栈中，占8字节（float类型被转换成double类型）。同样，n2也在栈中占8字节，而n3和n4在栈中分别占4字节。然后，控制转到printf()函数。该函数根据转换说明（不是根据变量类型）从栈中读取值。%ld转换说明表明printf()应该读取4字节，所以printf()读取栈中的前4字节作为第1个值。这是n1的前半部分，将被解释成一个long类型的整数。根据下一个%ld转换说明，printf()再读取4字节，这是n1的后半部分，将被解释成第2个long类型的整数（见图4.9）。类似地，根据第3个和第4个%ld，printf()读取n2的前半部分和后半部分，并解释成两个long类型的整数。因此，对于n3和n4，虽然用对了转换说明，但printf()还是读错了字节。
+
+- printf()返回值
+
+    返回打印字符的个数（包括空格和换行符\n），如果有错误，则返回一个负值（旧版本会返回不同的值）
+
+- 打印较长字符串时
+
+    ~~~c
+    #include <stdio.h>
+    int main(void)
+    {
+        printf("Here's one way to print a ");
+        printf("long string.\n"); // Here's one way to print a long string.
+        printf("Here's another way to print a \
+        long string.\n");// Here's another way to print a     long string.
+        printf("Here's the newest way to print a "
+        "long string.\n");　　// Here's the newest way to print a long string.
+        return 0;
+    }
+    ~~~
+
+**scanf()**
+
+ - 使用scanf()读取基本变量类型的值时，需要在变量名前加**&**
+
+ - 使用scanf()读取字符数组时，不需要在变量名前加**&**
+
+ - scanf()的转换说明
+
+   | 转换说明 |   含义   |
+   | :----: | :----: |
+   | %c | 把输入解释为字符 |
+   | %d | 把输入解释为十进制整数 |
+   | %e、%f、%a、%g | 把输入解释为浮点数（C99增加%a） |
+   | %E、%F、%A、%G | 把输入解释为浮点数（C99增加%A） |
+   | %i | 把输入解释为有符号十进制整数 |
+   | %o | 把输入解释为有符号八进制整数 |
+   | %p | 把输入解释为指针 |
+   | %s | 把输入解释为字符串 |
+   | %u | 把输入解释为无符号十进制整数 |
+   | %x、%X | 把输入解释为有符号十六进制整数 |
+   
+- scanf()转换说明中的修饰符
+
+    | 转换说明 |                             含义                             |
+    | :------: | :----------------------------------------------------------: |
+    |    *     |                      抑制赋值；示例%*d                       |
+    |   数字   | 最大字段宽度，输入达到最大字段宽度处，或第一次遇到空白时停止；示例%10s |
+    |    hh    | 把整数作为unsigned char或signed char类型读取示例；%hhd或%hhu |
+    |    ll    |       把整数作为long long 或unsigned long long类型读取       |
+    | h、l、L  | %hd和%hi      short int类型<br/>%ho、%hx和%hu   八进制、十六进制、无符号整数<br />%ld、%li     long类型<br />%lo、%lx、%lu无符号long类型<br />%le、%lf、%lg  double类型 |
+    |    j     |               表明使用intmax_t或uintmax_t类型                |
+    |    z     |                      sizeof的返回值类型                      |
+    |    t     |                      两个指针差值的类型                      |
+
+- scanf("%c", &ch)从输入中的第1个字符开始读取，scanf(" %c", &ch)从第1个非空白字符开始读取。
+
+    ~~~c
+    #include <stdio.h>
+    int main(void)
+    {
+        char name;
+        char b;
+        scanf("%c ", &name); // 读取第一个字符包含空格
+        scanf(" %c", &b); // 读取第一个非空字符，不管前面有多少个空格
+        printf("%c!\n", name);
+        printf("%c!", b);
+        return 0;
+    }
+    ~~~
+
+    
 
 ---
 ### 第5章
