@@ -494,7 +494,7 @@ Type　_Bool　has　a　size　of　1　bytes.
 
 **强制类型转换**
 
-    ```c
+```c
 #include <stdio.h>
 int main(void)
 {
@@ -505,7 +505,9 @@ int main(void)
     printf("%d-----%f", c, d);
     return 0;
 }
-    ```
+```
+
+
 
 ### 第6章
 
