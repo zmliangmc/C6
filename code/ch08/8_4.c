@@ -44,14 +44,12 @@ int main(int argc, char const *argv[])
 char get_first(void)
 {
     int ch;
-
     do
     {
         ch = tolower(getchar());
     } while (isspace(ch));
     while (getchar() != '\n')
         continue;
-
     return ch;
 }
 char get_choice(void)
