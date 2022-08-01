@@ -673,12 +673,116 @@ while(getchar()!='#'){
 
 判断一个float类型的数是否等于0；应该考虑到浮点数的精度，应该这样写`fabs(i)<=1e-6`
 
-
-
-
-
 ---
 ### 第9章
+
+> **函数**，参数传递都是值传递
+
+**return**
+
+函数返回
+
+**一元运算符*、&**
+
+&：取地址符，给出变量的地址
+
+~~~c
+	int a = 20;
+    printf("%d---%#x---%p", a, &a); // 20---0x61fe1c---000000000061FE1C
+~~~
+
+*：间接运算符、解引运算符
+
+后跟一个指针名或地址时，*给出储存在指针指向地址上的值
+
+**函数定义方式**
+
+~~~c
+#include <stdio.h>
+int imax(); //旧时函数声明
+int main(int argc, char const *argv[])
+{
+    int a = imax(3, 5);
+    printf("%d", a);
+    return 0;
+}
+int imax(m, n) // 旧时函数定义
+int m, n;
+{
+    return m > n ? m : n;
+}
+~~~
+
+**参数和返回值**
+
+实际参数和形式参数的区别：
+
+​	形式参数是定义在被调函数中的变量；实际参数是出现在函数调用中的值，该值被赋值给形式参数，可以把实际参数看作是函数调用时初始化形式参数的值。
+
+**指针变量参数**
+
+*指针用于存储变量的地址*
+
+~~~c
+#include <stdio.h>
+void interchange(int *x, int *y);
+int main(int argc, char const *argv[])
+{
+    int x = 5;
+    int y = 10;
+    printf("%d----%d\n", x, y);
+    interchange(&x, &y);
+    printf("%d----%d\n", x, y);
+    return 0;
+}
+void interchange(int *x, int *y)
+{
+    int temp;
+    temp = *x;
+    *x = *y;
+    *y = temp;
+}
+~~~
+
+**ANSI C原型**
+
+ANSI C标准要求在函数声明时还要声明变量的类型，即使用函数原型（function prototype）来声明函数的返回类型、参数的数量和每个参数的类型；无参数和无返回值用`void`表示
+
+**递归**
+
+C允许函数调用它自己，这种调用过程称为递归（recursion）。
+
+~~~c
+#include <stdio.h>
+void up_and_down(int n);// 递归 recursion
+int main(int argc, char const *argv[]){
+    up_and_down(4);
+
+    return 0;
+}
+void up_and_down(int n){
+    printf("level %d location %p \n", n, &n);
+    if (n > 1)
+        up_and_down(n - 1);
+    printf("level %d location %p \n", n, &n);
+}
+level 4 location 000000000061FE00
+level 3 location 000000000061FDD0
+level 2 location 000000000061FDA0
+level 1 location 000000000061FD70
+level 1 location 000000000061FD70
+level 2 location 000000000061FDA0
+level 3 location 000000000061FDD0
+level 4 location 000000000061FE00
+~~~
+
+尾递归：
+
+​		最简单的递归形式是把递归调用置于函数的末尾，即正好在 return 语句前。这种形式的递归被称为尾递归（tail recursion）
+
+**多源代码文件编译**
+
+`gcc file1 file2`
 
 ---
 ### 第10章
