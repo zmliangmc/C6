@@ -959,7 +959,7 @@ zippo[0]===&zippo[0][0];// zippo+1 其值增加对应类型的大小，即增加
 
 ~~~c
 int (*ptr)[2]; //ptr指向一个内含两个int类型的数组
-int *ptr[2]; //ptr指向一个内含两个指针元素的数组，每个指针都指向int的指针
+int *ptr[2]; //ptr指向一个内含两个指针元素的数组，每个指针都指向int的指针，因为[]的优先级高于*
 ~~~
 
 **函数和多维数组**
@@ -1021,7 +1021,450 @@ ptr = （int[2][4]){{1,2,3,4},{5,6,7,8}};
 ---
 ### 第11章
 
+> 字符串和字符串函数
+
+**表示字符串和字符串I/O**
+
+ - 字符串是以（\0)结尾的char类型数组
+
+ - puts()
+
+    	- puts()函数也属于stdio.h系列的输入/输出函数。puts()函数只显示字符串，而且在字符串末尾加上换行符
+
+- 定义字符串
+
+    - 字符串字面量（字符串常量）
+
+        用双引号括起来的内容称为字符串字面量，双引号中的字符和编译器自动加入末尾的\0字符，都作为字符串储存在内存中。
+
+        ~~~c
+        char hi[50]="hel""lo"",world";//与下面相同
+        char hi[50]="hello,world";
+        printf("%s,%p,%s","we","are",*"hello");//we,0x111111,h
+        /* *"hello" 表示该字符串所指向地址上存储的值，应该是字符串*"hello"的首字母*/
+        ~~~
+
+    - 字符串数组
+
+        ~~~c
+        char c[20]="hello";//所有未被使用的元素都被自动初始化为0，即char类型的空字符
+        char c[]="hello world";// 编译器会自动计算数组的大小，只能用在初始化数组时，
+        /*声明数组时，数组大小必须是可求值的整数*/
+        int n=8;
+        char a[n];// c99之前无效，c99之后这种数组是变长数组
+        /*字符数组名和其他数组名一样，是该数组首元素的地址。*/
+        char car[10]="hongqi";
+        car == &car[0]、*car==car[0]、*(car+1)==car[1]=='o';
+        const char *ptr = "hello";
+        const char ar[]="hello";//与上面几乎相同，并不完全相同
+        ~~~
+
+    - 数组和指针
+
+        - 当把程序载入内存时，也载入了程序中的字符串。字符串储存在静态存储区（static memory）中。但是，程序在开始运行时才会为该数组分配内存。此时，才将字符串拷贝到数组中。此时字符串有两个副本。一个是在静态内存中的字符串字面量，另一个是储存在ar1数组中的字符串。
+        - 此后，编译器便把数组名ar1识别为该数组首元素地址（&ar1[0]）的别名。这里关键要理解，在数组形式中，ar1是地址常量。不能更改ar1，如果改变了ar1，则意味着改变了数组的存储位置（即地址）。可以进行类似ar1+1这样的操作，标识数组的下一个元素。但是不允许进行++ar1这样的操作。递增运算符只能用于变量名前（或概括地说，只能用于可修改的左值），不能用于常量。
+        - 指针形式（*pt1）也使得编译器为字符串在静态存储区预留29个元素的空间。另外，一旦开始执行程序，它会为指针变量pt1留出一个储存位置，并把字符串的地址储存在指针变量中。该变量最初指向该字符串的首字符，但是它的值可以改变。因此，可以使用递增运算符。例如，++pt1将指向第2 个字符（o）。
+        - 字符串字面量被视为const数据。由于pt1指向这个const数据，所以应该把pt1声明为指向const数据的指针。这意味着不能用pt1改变它所指向的数据，但是仍然可以改变pt1的值（即，pt1指向的位置）。如果把一个字符串字面量拷贝给一个数组，就可以随意改变数据，除非把数组声明为const。
+
+    - 数组和指针的区别
+
+        ~~~c
+        char heart[]="i love you!";
+        const *head = "i love you!";
+        ~~~
+
+        - 两者都可以使用数组表示法
+        - 两者都可以进行指针加减法
+        - 只有指针可以进行递增操作
+        - 可以把数组heart赋值给head，不能把head赋值给heart
+        - 可以改变heart数组中元素的信息，eg：`heart[7]='m'或者*（heart+7）=’m`
+        - `head[2]='m'`编译器可能允许，但c标准规定是未定义的，这样做将影响所有使用该字符串的代码；
+        - 建议在把指针初始化为字符串字面量时使用const限定符
+        - 把非const数组初始化为字符串字面量却不会导致类似的问题。因为数组获得的是原始字符串的副本
+
+    - 字符串数组
+
+        ~~~c
+        const char *mytalents[5] = { // 是一个内含5个指针的数组，指针指向的字符串字面量不能更改
+        "Adding　numbers　swiftly",
+        "Multiplying　accurately",　"Stashing　data",
+        "Following　instructions　to　the　letter",
+        "Understanding　the　C　language"
+        };
+        char　yourtalents[5][40]　=　{ // 是一个内含5个数组的数组
+        "Walking　in　a　straight　line",
+        "Sleeping",　"Watching　television",
+        "Mailing　letters",　"Reading　email"
+        };
+        sizeof(mytalent)=5*8=40,sizeof(yourtalents)=5*40=200;
+        ~~~
+
+    **指针和字符串**
+
+    ~~~c
+    const char * mesg = "Don't be a fool!";
+    const char * copy;
+    copy　=　mesg;
+    /*两个指针指向的地址相同，也就存储的地址值相同，两个指针本身的地址不同，即 &mesg和&copy不同*/
+    ~~~
+
+**字符串输入**
+
+ - 分配空间
+
+    ~~~c
+    char *name;
+    scanf("%s",name);
+    /*上面字符串可能会通过编译（很有可能给出警告），但是在读入name时，name可能会擦写掉程序中的数据或代码，从而导致程序异常中止；。因为scanf()要把信息拷贝至参数指定的地址上，而此时该参数是个未初始化的指针，name可能会指向任何地方*/
+    ~~~
+
+- gets()[^7]
+
+    - 简单易用，它读取整行输入（包含开头的空字符），直至遇到换行符，然后丢弃换行符，储存其余字符，并在末尾添加一个空字符，使其称为C字符串。
+    - 经常与puts()配对使用（包含开头的空字符），该函数用于显示字符串，并在末尾添加换行符。
+    - scanf()和转换说明%s只能读取一个单词，省略前面的空格，遇到空格，换行符，制表符时停止。
+    - gets()函数无法检查数组是否装的下输入行。
+
+- fgets()
+
+    - `char *__cdecl fgets(char *_Buffer, int _MaxCount, FILE *_Stream)`第二个参数限制读入的字符串数来解决溢出的问题。该函数数专门设计用来处理文件输入，所以一般情况下不太好用。
+    - fgets()和gets()的区别
+
+        - 第二个参数n，fgets()将读入n-1个字符，或者读到第一个换行符为止。
+
+        - 如果fgets()读到一个换行符，会把它储存在字符串中。这点与gets()不同，gets()会丢掉换行符。
+
+        - fgets()函数的第3 个参数指明要读入的文件。如果读入从键盘输入的数据，则以stdin（标准输入）作为参数，该标识符定义在stdio.h中。
+
+        - fgets()返回指向char的指针；如果运行顺利，该函数返回的地址值与传入的第一个参数相同。但是如果函数读到文件结尾，它返回一个特殊的指针：空指针（null pointer）。该指针保证不会指向有效的数据；在代码中可以用数字0来代替，不过在C语言中用宏NULL来代替更常见
+
+        - 如何处理掉fgets()中的换行符
+
+            ~~~c
+            #include <stdio.h>
+            #define STLEN 10
+            int main(int argc, char const *argv[]){
+                char world[STLEN];
+                int i;
+                while (fgets(world, STLEN, stdin) != NULL && world[0] != '\n'){
+                    i = 0;
+                    while (world[i] != '\n' && world[i] != '\0')
+                        i++;
+                    if (world[i] == '\n')
+                        world[i] = '\0';
+                    else
+                        while (getchar() != '\n')
+                            continue;
+                    puts(world);
+                }
+                puts("dong");
+                return 0;
+            }
+            ~~~
+
+        - puts()和fputs()如果成功，则返回0，失败返回EOF(-1)
+
+- gets_s()
+
+    - gets_s()函数（可选）和fgets()类似，用一个参数限制读入的字符数
+    - 与gets()的区别
+        - 如果gets_s()读到换行符，会丢弃它而不是储存它；fgets()会存储换行符
+        - 如果gets_s()读到最大字符数都没有读到换行符，会执行以下几步。首先把目标数组中的首字符设置为空字符，读取并丢弃随后的输入直至读到换行符或文件结尾，然后返回空指针。接着，调用依赖实现的“处理函数”（或你选择的其他函数），可能会中止或退出程序。
+        - 只要输入行未超过最大字符数，gets_s()和gets()几乎一样，完全可以用gets_s()替换gets()
+
+- gets()、fgets()和 gets_s()的适用性
+
+    - 如果目标存储区装得下输入行，3 个函数都没问题。但是fgets()会保留输入末尾的换行符作为
+        字符串的一部分，要编写额外的代码将其替换成空字符。
+    - 如果输入行太长会怎样？使用gets()不安全，它会擦写现有数据，存在安全隐患。gets_s()函数很安全，但是，如果并不希望程序中止或退出，就要知道如何编写特殊的“处理函数”。
+
+- s_gets()
+
+    ~~~c
+    char *s_gets(char *st,int n){
+        char *ret_val;
+        int i=0;
+        ret_val = fgets(st,n,stdin);
+        if(ret_val){
+            while(st[i]!='\n'&&st[i]!='\0'){
+                i++;
+            if(st[i]=='\n')
+                st[i]='\0';
+            else
+                while(getchar()!='\n')
+                    continue;
+            }
+        return ret_val;
+    }
+    ~~~
+
+    s_gets()函数并不完美，它最严重的缺陷是遇到不合适的输入时毫无反应。它丢弃多余的字符时，既不通知程序也不告知用户。但是,用来替换前面程序示例中的gets()足够了。
+
+- scanf()
+
+    | 输入语句          | 原输入序列                       | name中的内容 | 剩余输入序列                |
+    | ----------------- | -------------------------------- | ------------ | --------------------------- |
+    | scanf("%s",name)  | fleebert:white_medium_square:hup | fleebert     | :white_medium_square:hup    |
+    | scanf("%5s",name) | fleebert:white_medium_square:hup | fleeb        | ert:white_medium_square:hup |
+    | scanf("%s",name)  | ann:white_medium_square:ular     | ann          | :white_medium_square:ular   |
+
+[^7]:如果输入的字符串过长，会导致缓冲区溢出（buffer overflow），即多余的字符超出了指定的目标空间。如果这些多余的字符只是占用了尚未使用的内存，就不会立即出现问题；如果它们擦写掉程序中的其他数据，会导致程序异常中止或者还有其他情况；过去通常用fgets()函数代替gets()函数，C11标准新增gets_s()函数代替gets()函数，是。
+
+**字符串输出**
+
+ - puts()
+
+     - 只需要把字符串的地址作为参数传给它；会在字符串末尾添加换行符
+
+        ~~~c
+        char s[]="hello";
+        const char *s1 = "hello";
+        puts(s);
+        puts(s1);
+        puts(&s[3]);
+        puts(s1+3);
+        ~~~
+
+     - 遇到空字符时就停止输出，所以必须保证有空字符串
+
+        ~~~c
+        #include <stdio.h>
+        int main(int argc, char const *argv[]){
+            char a[] = "hello A";
+            char b[] = {'a', 'b', 'c'};
+            char c[] = "hello B";
+            puts(b);
+            return 0;
+        }
+        ~~~
+
+ - fputs()
+
+     - fputs()是puts()针对文件定制的版本；第二个参数要写明要写入的文件
+     - 不会再字符串末尾添加换行符
+
+ - printf()、
+
+    	- 可以格式化输出各种数据类型
+
+**自定义输入/输出函数**
+
+ - 打印不带换行符的函数
+
+    ~~~c
+    void put1(char *string){
+        while(*string!='\0')
+            putchar(*string++);
+    }
+    ~~~
+
+- 打印不带换行符并返回字符串数量的函数
+
+    ~~~c
+    int put2(char string[]){
+        int i=count=0;
+        while(string[i]!='0'){
+            putchar(string[i++]);
+            count++;
+        }
+        putchar('\n');
+        return count;
+    }
+    ~~~
+
+**字符串函数**
+
+ - strlen()
+
+     - 用于统计字符串的长度
+
+        ~~~c
+        void fit(char *string,unsigned int size){ // 缩短字符串长度
+            if(strlen(string)>size)
+                string[size]='\0';
+        }
+        ~~~
+
+- strcat()
+
+    - char *__cdecl strcat(char *_Destination, const char *_Source)接受两个字符串作为参数；把第二个字符串的备份附加再第一个字符串末尾，第一个字符串改变，第二个不变。返回拼接后的第一个字符串。
+
+        ~~~c
+        #include <stdio.h>
+        #include <string.h>
+        int main(){
+            char s[20] = "hello";
+            char *s2 = " world";
+            char *s3 = strcat(s, s2);// 第一个参数不能为指针字符串
+            puts(s3);
+            puts(s);
+            puts(s2);
+            return 0;
+        }
+        ~~~
+
+    - strcat()函数无法检查第一个数组字符串能否容纳第二个字符串，字符溢出容易出问题
+
+- strncat()
+
+    - 该函数第三个参数规定了最大添加的字符数n
+    - 这里的做大字符数：如果添加后字符串长度没有超过原长度，则n表示添加的字符数量，如果超过，则会出现字符溢出问题；fget()中n表示可以读取的字符串长度为n-1，最后一个为‘\0'
+
+- strcmp()
+
+    - 比较两个字符串的是否有相同，区分大小写
+    - 只会比较第一个空字符前面的部分，然后依次比较每个字符，直到发现第一个不同的字符位置
+    - 如果在字母表中第1个字符串位于第2个字符串前面，strcmp()中就返回负数；反之，strcmp()则返回正数。两个字符串相等则返回0。
+
+- strcnmp()
+
+    - strncmp()函数在比较两个字符串时，可以比较到字符不同的地方，也可以只比较第3个参数指定的字符数；返回值同strcmp()函数一样
+
+- strcpy()
+
+    - 接受两个字符串指针作为参数，可以把指向源字符串的第二个指针声明为指针、数组名或字符串常量；而指向源字符串副本的第一个指针应指向一个数据对象（eg：数组），且该对象有足够的空间储存源字符串的副本。
+    - 返回类型为char *，即第一个参数的值；第一个参数不必指向数组的开始
+
+- strncpy()
+
+    - 与strcpy()都不能检查目标空间是否能容纳源字符串的副本
+    - char *__cdecl strncpy(char *_Destination, const char *_Source, size_t _Count)第三个参数指明可拷贝的最大字符数。
+    - 如果source中的字符数小于n，则拷贝整个字符串，包括空字符。但是，strncpy()拷贝字符串的长度不会超过n，如果拷贝到第n个字符时还未拷贝完整个源字符串，就不会拷贝空字符。
+
+- sprintf()
+
+    - 声明在stdio.h中
+    - 与printf()类似，但是它把数据写入字符串，该函数可以把多个元素组合成一个字符串。sprintf()的第1个参数是目标字符串的地址。其余参数和printf()相同，即格式字符串和待写入项的列表。
+
+- 其他字符串函数
+
+    - char *strcpy(char * restrict s1, const char * restrict s2);
+
+    - char *strncpy(char * restrict s1, const char * restrict s2, size_t n);
+
+    - char *strcat(char * restrict s1, const char * restrict s2);
+
+    - char *strncat(char * restrict s1, const char * restrict s2, size_t n);
+
+    - int strcmp(const char * s1, const char * s2);
+
+    - int strncmp(const char * s1, const char * s2, size_t n);
+
+    - char *strchr(const char * s, int c);
+
+        如果字符串s包含c字符，该函数返回指向s字符串受位置的指针（末尾的空字符也是字符串的一部分，所以在查找范围内）；
+
+    - char *strpbrk(const char * s1, const char * s2);
+
+        如果 s1 字符中包含 s2 字符串中的任意字符，该函数返回指向 s1 字符串首位置的指针；如果在s1字符串中未找到任何s2字符串中的字符，则返回空字符。
+
+    - char *strrchr(const char * s, int c);
+
+        该函数返回s字符串中c字符的最后一次出现的位置（末尾的空字符也是字符串的一部分，所以在查找范围内）。如果未找到c字符，则返回空指针。
+
+    - char *strstr(const char * s1, const char * s2);
+
+        该函数返回指向s1字符串中s2字符串出现的首位置。如果在s1中没有找到s2，则返回空指针。
+
+    - size_t strlen(const char * s);
+
+        该函数返回s字符串中的字符数，不包括末尾的空字符。
+
+**字符串排序**
+
+ - 选择排序
+
+    ~~~c
+    void strsort(char*string[],int n){
+        int top,seek;
+        char *temp;
+        for(top =0;top<n-1,top++)
+            for(seek=top+1;seek<n,seek++){
+                if(strcmp(string[top],string[seek])>0){
+                temp =string[top];
+                string[top]=string[seek];
+                string[seek]=temp;
+                }
+            }
+    }
+    ~~~
+
+**ctype.h字符函数和字符串**
+
+ - 将字符串改为大写
+
+    ~~~c
+    void toUpper(char *str){
+        while (*str)
+        {
+            *str = toupper(*str);
+            str++;
+        }
+    }
+    ~~~
+
+- 统计非字符数量
+
+    ~~~c
+    int countPunt(char *str){
+        int i = 0;
+        while (*str)
+        {
+            if (ispunct(*str++))
+                i++;
+            }
+        return i;
+    }
+    ~~~
+
+**命令行**
+
+~~~c
+#include<stdio.h>
+int main(int argc, char const *argv[])// argc 参数的总个数，*argv[]参数的指针数组，参数以空格分割，可以用双引号把多个单词括起来
+{
+    for (int i = 0; i < argc; i++)
+    {
+        puts(argv[i]);
+    }
+    return 0;
+}
+~~~
+
+**将字符串转换为数字\<stdlib\>.h**
+
+ - atoi()
+
+    可以处理数字字符串，也可以处理仅以数字开头的字符串，返回字符串开头整数
+
+    如果参数不是数字字符串，C标准规定这种情况为未定义的。
+
+- atif()
+
+    把字符串转换为double类型
+
+- atol()
+
+    把字符串转换为long类型
+
+- strtol()
+
+    把字符串转换为long类型
+
+    long strtol(const char * restrict nptr, char ** restrict endptr, int base);
+
+    nptr是指向待转换字符串的指针，endptr是一个指针的地址，该指针被设置为标识输入数字结束字符的地址，base表示以什么进制写入数字
+
+- strtoul()
+
+    把字符串转换为unsigned long类型
+
+- strtod()
+
+    把字符串转换为double类型
+
 ---
+
 ### 第12章
 
 ---
