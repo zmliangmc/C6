@@ -687,8 +687,8 @@ while(getchar()!='#'){
 &：取地址符，给出变量的地址
 
 ~~~c
-	int a = 20;
-    printf("%d---%#x---%p", a, &a); // 20---0x61fe1c---000000000061FE1C
+int a = 20;
+printf("%d---%#x---%p", a, &a); // 20---0x61fe1c---000000000061FE1C
 ~~~
 
 *：间接运算符、解引运算符
@@ -868,7 +868,7 @@ int main(int argc, char const *argv[])
     }
     ~~~
 
-- 指针[^5]的基本操作
+- 指针[^6]的基本操作
 
     - 赋值：
 
@@ -894,7 +894,7 @@ int main(int argc, char const *argv[])
 
         可以计算两个指针的差值。差值单位与数组类型的单位相同。
 
-[^5]:千万不要解引用未初始化的指针。eg：`int *ptr;*ptr=5;`
+[^6]:千万不要解引用未初始化的指针。eg：`int *ptr;*ptr=5;`
 
 **对形参使用const**
 
@@ -982,7 +982,7 @@ int sum4d(int ar[][2][3][4],int rows);// 与下面形式等价
 int sum4d(int (*ar)[2][3][4],int rows);
 ~~~
 
-**变长数组[^6]（VLA）**
+**变长数组[^7]（VLA）**
 
 ~~~c
 int quarters = 4;
@@ -1002,7 +1002,7 @@ double ar[SZ];
 // C99/C11 标准允许在声明变长数组时使用 const 变量。所以该数组的定义必须是声明在块中的自动存储类别数组。
 ~~~
 
-[^6]:变长数组不能改变大小；变长数组中的‘’变‘’不是指可以修改一创建数组的大小。一旦创建了变长数组，它的大小则保持不变。这里的变是指：在创建数组是，可以使用变量指定数组的维度。
+[^7]:变长数组不能改变大小；变长数组中的‘’变‘’不是指可以修改一创建数组的大小。一旦创建了变长数组，它的大小则保持不变。这里的变是指：在创建数组是，可以使用变量指定数组的维度。
 
 **复合字面量**
 
@@ -1118,7 +1118,7 @@ ptr = （int[2][4]){{1,2,3,4},{5,6,7,8}};
     /*上面字符串可能会通过编译（很有可能给出警告），但是在读入name时，name可能会擦写掉程序中的数据或代码，从而导致程序异常中止；。因为scanf()要把信息拷贝至参数指定的地址上，而此时该参数是个未初始化的指针，name可能会指向任何地方*/
     ~~~
 
-- gets()[^7]
+- gets()[^8]
 
     - 简单易用，它读取整行输入（包含开头的空字符），直至遇到换行符，然后丢弃换行符，储存其余字符，并在末尾添加一个空字符，使其称为C字符串。
     - 经常与puts()配对使用（包含开头的空字符），该函数用于显示字符串，并在末尾添加换行符。
@@ -1208,7 +1208,7 @@ ptr = （int[2][4]){{1,2,3,4},{5,6,7,8}};
     | scanf("%5s",name) | fleebert:white_medium_square:hup | fleeb        | ert:white_medium_square:hup |
     | scanf("%s",name)  | ann:white_medium_square:ular     | ann          | :white_medium_square:ular   |
 
-[^7]:如果输入的字符串过长，会导致缓冲区溢出（buffer overflow），即多余的字符超出了指定的目标空间。如果这些多余的字符只是占用了尚未使用的内存，就不会立即出现问题；如果它们擦写掉程序中的其他数据，会导致程序异常中止或者还有其他情况；过去通常用fgets()函数代替gets()函数，C11标准新增gets_s()函数代替gets()函数，是。
+[^8]:如果输入的字符串过长，会导致缓冲区溢出（buffer overflow），即多余的字符超出了指定的目标空间。如果这些多余的字符只是占用了尚未使用的内存，就不会立即出现问题；如果它们擦写掉程序中的其他数据，会导致程序异常中止或者还有其他情况；过去通常用fgets()函数代替gets()函数，C11标准新增gets_s()函数代替gets()函数，是。
 
 **字符串输出**
 
@@ -1431,7 +1431,7 @@ int main(int argc, char const *argv[])// argc 参数的总个数，*argv[]参数
 }
 ~~~
 
-**将字符串转换为数字\<stdlib\>.h**
+**将字符串转换为数字`<stdlib>.h`**
 
  - atoi()
 
@@ -1674,6 +1674,224 @@ int main(){
 
 ---
 ### 第13章
+
+> 文件输入输出
+
+**与文件进行通讯**
+
+ - 文件是通常是磁盘或固态硬盘上的一段已命名的存储区
+
+ - 文件分为文本模式和二进制模式
+
+    所有文件内容都以二进制（0或1）储存
+
+    C和UNIX在文本中都是用\n表示换行符，OS macintosh文件用\r表示新的一行，MS-DOS文件用\r\n表示新的一行
+
+- I/O级别
+
+    底层I/O使用操作系统提供的基本I/O服务
+
+    标准高级I/O使用C库的标准包和<stdio.h>头文件定义
+
+- 标准文件
+
+    C程序会自动打开3个文件，他们被称为标准输入、标准输出、标准错误输出
+
+- 标准I/O
+
+    - 标准I/O有许多专门的函数简化了处理不同I/O的问题。
+    - 输入和输出都是缓冲的。也就是说一次转移一大块信息而不是一字节信息（通常至少512字节）；这种缓冲极大的提高了数据传输效率
+
+**二进制文件与文本文件的区别**
+
+	- [x] 这两种文件格式对系统的依赖性不同
+
+**二进制流和文本流的区别**
+
+	- [x] 在读写流时程序执行的转换(二进制流不转换，而文本流可能要转换换行符和其他字符)
+
+**检查命令行参数**
+
+	- C标准要求0或宏EXIT_SUCESS用于表明成功结束程序，宏EXIT_FAILURE用于表明成功结束程序
+	- exit()会结束程序，return只会把控制权交给上一级递归
+
+**fopen()**
+
+ - fopen()的模式字符串
+
+    | 模式字符串                                                   | 含义                                                         |
+    | ------------------------------------------------------------ | ------------------------------------------------------------ |
+    | "r"                                                          | 以读模式打开文件                                             |
+    | ''w''                                                        | 以写模式打开文件，把现有文件的长度截为0，如果文件不存在，则创建一个新的文件 |
+    | "a"                                                          | 以写模式打开文件，在现有文件末尾添加内容，如果文件不存在，则创建一个新的文件 |
+    | "r+"                                                         | 以更新模式打开文件（即读和写）                               |
+    | "w+"                                                         | 以更新模式打开文件（即读和写），如果文件存在，则将其长度截为0；如果文件不存在，则创建一个新文件 |
+    | "a+"                                                         | 以更新模式打开文件（即读和写），在现有文件末尾添加内容，如果文件不存在，则创建一个新文件 |
+    | "rb"、"wb"、"ab"、<br/>"rb+"、"r+b"、"wb+"、<br/>"w+b"、"a+b"、"ab+ | 与上一个模式类似，但是以二进制模式而不是文本模式打开文件     |
+    | "wx"、"wbx"、"w+x"、<br/>"wb+x"或"w+bx"                      | (c11)类似x[^9]模式，但是如果文件已存在或以独占模式打开文件，则打开文件失败 |
+
+    [^9]:第一，如果以传统的一种写模式打开一个现有文件，fopen()会把该文件的长度截为 0，这样就丢失了该文件的内容。但是使用带 x字母的写模式，即使fopen()操作失败，原文件的内容也不会被删除。第二，如果环境允许，x模式的独占特性使得其他程序或线程无法访问正在被打开的文件。
+
+    文件指针并不指向实际文件，它指向一个包含文件信息的数据对象，其中包含操作文件的I/O函数所用的缓冲区信息
+
+**getc()和putc()**
+
+- getc()和putc()函数与getchar()和putchar()函数类似,所不同的是，要告诉getc()和putc()函数使用哪一个文件。
+- ch = getchar()与ch=getc(stdin)相同；putchar(ch)和putc(ch,stdout)相同
+- `int __cdecl getc(FILE *_Stream)`      `int __cdecl putc(int _Character, FILE *_Stream) `
+
+**文件结尾**
+
+~~~c
+int ch;
+FILE *fp;
+fp=fopen("a.txt","r");
+while((ch=getc(fp))!=EOF)// 读取到文件结尾时，它将返回EOF
+    putc(ch,stdout);
+~~~
+
+**fclose()**
+
+fclose(fp)函数关闭fp指定的文件，必要时刷新缓冲区。对于较正式的程序，应该检查是否成功关闭文件。如果成功关闭，fclose()函数返回0，否则返回EOF
+
+~~~c
+if(fclose(fp)!=0)
+    printf("error in closing file %s\n"argv[1]);
+~~~
+
+**指向标准文件的指针**
+
+| 标准文件      | 文件指针 | 通常使用的设备 |
+| ------------- | -------- | -------------- |
+| 标准输入      | stdin    | 键盘           |
+| 标准输出      | stdout   | 显示器         |
+| 标准错误[^10] | stderr   | 显示器         |
+
+[^10]:通常情况，标准错误被重定向到与标准输出相同的位置。但是标准错误不受标准输出重定向的影响
+
+**fprintf()和fscanf()**
+
+fprintf()和 fscanf()的工作方式与 printf()和 scanf()类似。但是，与 putc()不同的是，fprintf()和fscanf()函数都把FILE指针作为第1个参数，而不是最后一个参数。
+
+`inline int __cdecl fprintf(FILE *const _Stream, const char *const _Format, ...)`
+
+`inline int __cdecl fscanf(FILE *const _Stream, const char *const _Format, ...)`
+
+**fgets()和fputs()**
+
+`char * fgets(**char \*_Buffer**, int _MaxCount, FILE *_Stream)`
+
+`int __cdecl fputs(const char *_Buffer, FILE *_Stream)`
+
+**fseek()和ftell()**
+
+`int __cdecl fseek(FILE *_Stream, long _Offset, int _Origin)`
+
+第一个参数是FILE指针，指向待查找的文件
+
+第二个参数是偏移量，表示从起始点开始要移动的距离，该参数必须是一个long类型的值，可以为正、负、零
+
+第三个参数是模式，该参数确定起始点。SEEK_SET 文件开始处，SEEK_CUR当前位置，SEEK_END文件末尾。
+
+~~~c
+fseek(fp, 0L, SEEK_SET); // 定位至文件开始处
+fseek(fp, 10L, SEEK_SET); // 定位至文件中的第10个字节
+fseek(fp, 2L, SEEK_CUR); // 从文件当前位置前移2个字节
+fseek(fp, 0L, SEEK_END); // 定位至文件结尾
+fseek(fp, -10L, SEEK_END); // 从文件结尾处回退10个字节
+~~~
+
+如果一切正常，fseek()的返回值为0；如果出现错误（如试图移动的距离超出文件的范围），其返回值为-1。
+
+`long __cdecl ftell(FILE *_Stream)`
+
+ftell()函数的返回类型是long，它返回的是当前的位置。
+
+~~~c
+fseek(fp,0l,SEEK_END);
+long last = ftell(fp);
+for(count = 1L;count<=last;count++){
+    fseek(fp,-count,SEEK_END);
+    ch=getc(fp);
+}
+~~~
+
+ANSI C规定，对于文本模式，ftell()返回值可以作为fseek()的第二个参数。对于MS-DOS，ftell()返回的值把\r\n当作一个字节计数。
+
+**可移植性**
+
+文本模式中，只有以下调用能保证其相应的行为。
+
+| 函数调用                       | 效果                                                    |
+| ------------------------------ | ------------------------------------------------------- |
+| fseek(file,0L,SEEK_SET)        | 定位至文件开始处                                        |
+| fseek(file,0L,SEEK_CUR)        | 保持当前位置不动                                        |
+| fseek(file,0L,SEEK_END)        | 定位至文件结尾                                          |
+| fseek(file,ftell_pos,SEEK_SET) | 距文件开始处ftell_pos的位置，ftell_pos是ftell()的返回值 |
+
+**fgetpos()和fsetpos()**
+
+- fseek()和 ftell()潜在的问题是，它们都把文件大小限制在 long 类型能表示的范围内。也许 20亿字节看起来相当大，但是随着存储设备的容量迅猛增长，文件也越来越大。
+- fgetpos()和 fsetpos()。这两个函数不使用 long 类型的值表示位置，它们使用一种新类型：fpos_t（代表file position type，文件定位类型）。fpos_t类型不是基本类型，它根据其他类型来定义。fpos_t 类型的变量或数据对象可以在文件中指定一个位置，它不能是数组类型
+- `int __cdecl fgetpos(FILE *_Stream, fpos_t *_Position)`调用该函数时，它把fpos_t类型的值放在pos指向的位置上，该值描述了文件中的一个位置。如果成功，fgetpos()函数返回0；如果失败，返回非0。
+- `int __cdecl fsetpos(FILE *_Stream, const fpos_t *_Position)`调用该函数时，使用pos指向位置上的fpos_t类型值来设置文件指针指向该值指定的位置。如果成功，fsetpos()函数返回0；如果失败，则返回非0。fpos_t类型的值应通过之前调用fgetpos()获得。
+
+**标准I/O的机理**
+
+- fopen()函数不仅打开一个文件，还创建了一个缓冲区（在读写模式下会创建两个缓冲区）以及一个包含文件和缓冲区数据的结构。另外，fopen()返回一个指向该结构的指针，以便其他函数知道如何找到该结构。这个结构通常包含一个指定流中当前位置的文件位置指示器。除此之外，它还包含错误和文件结尾的指示器、一个指向缓冲区开始处的指针、一个文件标识符和一个计数(统计实际拷贝进缓冲区的字节数)
+- 在初始化结构和缓冲区后，输入函数要求从缓冲区中读取数据。在它读取数据时，文件位置指示器被设置为指向刚读取字符的下一个字符。
+
+**其他标准I/O函数**
+
+ - ungetc()
+
+    `int ungetc(int c,FILE*fp)`函数把指定的c字符放回输入流中。
+
+- fflush()
+
+    `int fflush(FILE*fp)`调用fflush()函数引起输出缓冲区中所有未写入数被发送到fp指定的输出文件。这个过程称为刷新缓冲区。
+
+- setvbuf()
+
+    `int setvbuf(FILE * restrict fp, char * restrict buf, int mode, size_t size);`
+
+    setvbuf()函数创建了一个供标准I/O函数替换使用的缓冲区。在打开文件后且未对流进行其他操作之前，调用该函数。指针fp识别待处理的流，buf指向待使用的存储区。如果buf的值不是NULL，则必须创建一个缓冲区。如果把NULL作为buf的值，该函数会为自己分配一个缓冲区。
+
+    mode的选择如下：\_IOFBF表示完全缓冲（在缓冲区满时刷新）；_IOLBF表示行缓冲（在缓冲区满时或写入一个换行符时）；\_IONBF表示无缓冲。如果操作成功，函数返回0，否则返回一个非零值。
+
+- 二进制I/O
+
+    - fread()
+
+        `size_t fread(void * restrict ptr, size_t size, size_t nmemb,FILE * restrict fp);`函数接受的参数和fwrite()相同，ptr是待读取文件数据在内存中的地址，fp指定待读取的文件。
+
+        ~~~c
+        double earnings[10];
+        fread(earings,sizeof(double),10,fp);// 该调用把10个double大小的值拷贝进earning数组
+        ~~~
+
+    - fwrite()
+
+        `size_t fwrite(const void * restrict ptr, size_t size, size_t nmemb,FILE * restrictfp);`函数把二进制数据写入文件。ptr是待写入数据块的地址。size是待写入数据块的大小，nmemb是待写入数据块的数量，fp指定待写入的文件。eg:
+
+        ~~~c
+        char buffer[256];
+        fwrite(buffer,256,1,fp);// 把一块256字节的数据从buffer中写入fp文件
+        double earnings[10];
+        fwrite(earings,sizeof(double),10,fp);// 把数组中的数据写入文件，数据被分为10块，每块都是double大小
+        ~~~
+
+        函数返回成功写入项数量，正常情况下就是nmemb，出现错误返回值比nmemb小。
+
+- feof()和ferror()
+
+    - `int feof(FILE*fp)`
+    - `int ferror(FILE*fp)`
+    - 如果标准输入函数返回 EOF，则通常表明函数已到达文件结尾。然而，出现读取错误时，函数也会返回EOF。feof()和ferror()函数用于区分这两种情况。
+
+- rewind()
+
+    `void rewind(FILE*stream)`函数使文件指针重新返回文件开始位置
 
 ---
 ### 第14章
