@@ -1896,7 +1896,321 @@ ANSI C规定，对于文本模式，ftell()返回值可以作为fseek()的第二
 ---
 ### 第14章
 
+> 结构和其他数据形式
+
+**结构声明**
+
+ - 结构声明描述了一个结构的组织布局，有时把结构声明称为模板
+
+    ~~~c
+    struct book{ // book为结构标记
+        char title[MAXTITL];
+        char autor[MAXAUTL];
+        floar value;
+    };
+    struct book libiary; // 把library声明为一个使用book结构布局的结构变量
+    ~~~
+
+- 如果把结构声明置于一个函数的内部，它的标记就只限于该函数内部使用。如果把结构声明置于函数的外部，那么该声明之后的所有函数都能使用它的标记。
+
+**结构变量**
+
+~~~c
+struct { // 无结构标记
+    char title[MAXTITL];
+    char autor[MAXAUTL];
+    floar value;
+}library;
+~~~
+
+ - 初始化结构
+
+    ~~~c
+    struct book library={
+        "war and peace",
+        "renee",
+        1.99
+    };
+    ~~~
+
+    初始化结构和类别存储期：
+
+    初始化静态存储期的结构，必须使用常量值或常量表达式。如果式自动存储期，初始化列表的值可以不是常量。
+
+- 访问结构成员
+
+    使用结构成员运算符——点（.[^11]）访问结构中的成员。eg：`library.title;library.value`取地址`&library.autor`
+
+    [^11]:.比&的优先级高
+
+- 结构的初始化器
+
+    ~~~c
+    struct book library={.value=10.0};
+    struct book library={
+        .value=10.0,
+        .autor="james",
+        .title="rue"
+    };
+    struct book library={
+        .value=10.0,
+        .autor="james",
+        10.333  //10.33 覆盖上面的10.0
+    };
+    ~~~
+
+**结构数组**
+
+ - 创建结构数组时，由于数组为自动存储类别对象，其中信息储存在栈中。可能会导致栈溢出。可以使用编译器选项设置栈大小。也可以创建静态或外部数组。
+
+ - 声明结构数组
+
+    `struct book library[MAXBKS];`
+
+- 标识结构数组的成员
+
+    `library[2].title`
+
+**嵌套结构**
+
+在一个结构中包含另一个结构
+
+**指向结构的指针**
+
+ - 声明和初始化指针
+
+    ~~~c
+    struct guy *him;
+    him =&barney;//和数组不同的是，结构名并不是结构的指针，因此要在结构名前面加上&运算符
+    him = &fellow[0];
+    ~~~
+
+- 用指针访问成员
+
+    ~~~c
+    him->income==barney.income;
+    him->income==fellow[0].income==(*him).income;//.运算符比*运算符优先级高
+    ~~~
+
+**向函数传递结构的信息**
+
+ - 传递结构成员
+
+    只要结构成员是一个具有单个值的数据类型，便可把它作为参数传递给接受该特定类型的函数。
+
+    如果需要在被调函数中修改主调函数中成员的值，就要传递成员的地址。
+
+- 传递结构的地址
+
+    ~~~c
+    double sum (const struct *money){
+        return(money->bankfund+money->savefund);
+    }
+    ~~~
+
+- 传递结构
+
+    ~~~c
+    double sum (const struct moolah){
+        return(money->bankfund+money->savefund);
+    }
+    sum(stan);
+    ~~~
+
+- 其他结构特性
+
+    c允许把一个结构赋值给另一个结构，但是数组不能这样做
+
+    `o_data=n_data;`这条语句把n_data的每个成员赋值给o_data的相应成员，即使成员是数组，也能完成赋值。
+
+- 结构和结构指针的选择
+
+    结构指针参数：执行快，只需要传递一个地址。缺点是无法保护数据，可用const限定符防止数据被修改。
+
+    结构参数：函数处理的是原始数据的副本，保护了原始数据，代码风格更清楚。缺点：较老版本实现可能无法处理这样的代码，而且传递结构浪费时间和存储空间。尤其把大型结构传递给函数
+
+- 结构中的字符数组和字符指针
+
+  结构中的字符指针不能为字符串分配任何存储空间，它使用的是储存在别处的字符串（如字符串常量或数组中的字符串），简而言之，在结构中的字符指针只用来在程序中管理那些已分配和别处分配的字符串。
+  
+  `scanf("%s",attorney.last)`中last为字符串指针，由于last是未经初始化的变量，地址可以是任何值，因此程序可以把last放在任何地方。
+  
+- 结构、指针和malloc()
+
+    可以使用malloc()函数给结构中字符串指针分配内存，注意要用free释放。
+
+- 复合字面量和结构(C99)
+
+    `(struct book{"idiot","fyodor",6.99})`
+
+    复合字面量结构适合临时创建一个结构。
+
+    复合字面量在所有函数的外部，具有静态存储期；如果复合字面量在块中，则具有自动存储期。复合字面量和普通初始化列表的语法规则相同。这意味着，可以在复合字面量中使用指定初始化器。
+
+- 伸缩数组成员(C99)
+
+    利用这个特性声明的结构，其最后一个数组成员具有一些特性。一、该数组不会立即存在，二、使用这个伸缩型数组成员可以编写何时的代码，就好像它确实存在并具有所需数目的元素一样。
+
+    - 伸缩型数组成员必须是结构的最后一个成员
+    - 结构中必须至少有一个成员
+    - 伸缩型数组的声明类似于普通数组，只是它的方括号是空的
+
+    ~~~c
+    struct flex{
+        int count;
+        double average;
+        double scores[];//伸缩型数组成员
+    }；
+    ~~~
+
+    声明一个struct flex类型的结构变量时，不能用scores做任何事，因为没有给这个数组预留存储空间。实际上，C99的意图并不是让你声明struct flex类型的变量，而是希望你声明一个指向struct flex类型的指针，然后用malloc()来分配足够的空间，以储存struct flex类型结构的常规内容和伸缩型数组成员所需的额外空间。
+
+    伸缩性数组成员结构的特殊要求
+
+    	- 不能使用结构进行赋值或拷贝
+    	- 不要以按值方式把这种结构传递给结构，原因相同，安置传递一个参数与赋值类似，要把结构的地址传递给函数。
+    	- 不要使用待伸缩性数组成员的结构作为另一个结构的成员
+
+- 匿名结构
+
+    ~~~c
+    struct person{
+        int id;
+        struct{char fname[10];char lname[10]};
+    };
+    puts(p.fname);
+    ~~~
+
+**链式结构**
+
+每个结构包含一两个数据项和一两个指向其他同类型结构的指针。这些指针把一个结构和另一个结构链接起来，并提供一种路径能遍历整个彼此的结构。
+
+**联合简介**
+
+联合（union）是一种数据类型，它能在同一个内存空间中储存不同的数据类型（不是同时储存）。其典型的用法是，设计一种表以储存既无规律、事先也不知道顺序的混合类型。
+
+~~~c
+union hold{
+    int digit;
+    double biglf;
+    char ch;
+};
+// 联合只能存储一种数据类型
+union hold fit;
+union hold save[10];
+union hold *pu;
+fit.digit=10;
+fit.biglf=10.0;
+fit.ch='o';
+pu->digit;
+
+struct car_data {
+char make[15];
+int status; /* 私有为0，租赁为1 */
+union {
+struct owner owncar;
+struct leasecompany leasecar;
+};
+~~~
+
+**枚举类型**
+
+可以用枚举类型（enumerated type）声明符号名称来表示整型常量。
+
+~~~c
+enum spectrum {red, orange, yellow, green, blue, violet};
+enum spectrum color;
+printf("red = %d, orange = %d\n", red, orange);//red = 0, orange = 1
+enum levels {low = 100, medium = 500, high = 2000};//可以为枚举常量指定整数值
+enum feline {cat, lynx = 10, puma, tiger};//cat的值是0（默认），lynx、puma和tiger的值分别是10、11、12
+
+~~~
+
+C中允许使用共享名称空间；名称空间是分类别的。在特定作用域中的结构标记、联合标记和枚举标记都共享相同的名称空间，该名称空间与普通变量使用的空间不同。这意味着在相同作用域中变量和标记的名称可以相同，不会引起冲突；C++不允许因为标记名和变量名放在形同的名称空间
+
+**typedef**
+
+typedef工具是一个高级数据特性；与#define不同typedef创建的符号之受限于类型，不能用于值。
+
+typedef由编译器解释，不是预处理器。
+
+~~~c
+typedef unsigned char BYTE;//BYTE就等价于undigned char
+#define BYTE unsigned char;//同上
+BYTE x,y[10],*z;
+~~~
+
+C标准规定sizeof和time（）返回整数类型，但是让实现来决定具体是什么整数类型。
+
+~~~c
+typedef char * STRING;
+STRING name,sign;// STRING 等价于char类型指针；相当于 char* name,*sign;
+typedef struct complex{ //可以省略complex
+    float real;
+    float imag;
+}COMPLEX;
+typedef char (*FRPTC())[5];FRPTC声明为一个函数类型，该函数返回一个指针，该指针指向内含5个char类型的数组；
+~~~
+
+**其他复杂声明**
+
+| 声明                 | 含义                                                         |
+| -------------------- | ------------------------------------------------------------ |
+| int board \[8][8]    | 声明一个内含int数组的数组                                    |
+| int **ptr            | 声明一个指向指针的指针，被指向的指针指向int                  |
+| int *risks[10]       | 声明一个内含10个元素的数组，每个元素是一个指向int类型的指针  |
+| int (*risks)[10]     | 声明一个指向数组的指针，该数组内含10个int类型的值            |
+| int *oof\[3][4]      | 声明一个3*4的二维数组，数组内每个元素都是一个int类型指针     |
+| int （*oof)\[3][4]   | 声明一个指向3*4二维数组的指针，该数组内含int类型的值         |
+| int (*oof[3])[4]     | 声明一个内含3个指针元素的数组，每个指针都指向一个内含4个int类型元素的数组 |
+| char *fump(int)      | 返回字符指针的函数                                           |
+| char (*frump)(int)   | 指向函数的指针，该函数的返回类型为char                       |
+| char(*frump[3])(int) | 内含3个指针的数组，每个指针指向返回char类型的                |
+
+~~~c
+typedef int arr5[5];
+typedef arr5 *p_arr5;
+typedef p_arr5 arrp10[10];
+arr5 togs; // togs是一个内含5个int类型的数组
+p_arr5 p2;// p2是一个指向数组的指针，该数组内含5个int类型的值
+arrp10 ap; // ap是内含10个指针的数组，每个指针都指向一个内含5个int类型值的数组
+~~~
+
+**函数和指针**
+
+函数指针常用作另一个函数的参数，告诉该函数要使用哪一个函数。
+
+函数也有地址，指向函数的指针中储存这函数代码的起始地址
+
+声明一个函数指针时，必须声明指针指向的函数类型；为了指明函数类型，要指明函数签名，即函数的返回类型和形参类型
+
+~~~c
+void toupper(char *);
+void (*fp)(char *);//pf 时一个指向函数的指针
+void tolower(char*);
+char mis[]="hello world";
+pf=tolower;
+(*pf)(mis);
+pf=toupper;
+(*pf)(mis);
+void show(void (*pf)(char*),char*str);
+show(pf,mis);
+show(toupper,mis);
+void show(void (*pf)(char*),char*str){
+    (*pf)(str);
+    puts(str);
+}
+~~~
+
+~~~c
+typedef void (*V_FP_CHARP)(char*);
+void show (V_FP_CHARP FP,char*);
+V_FP_CHARP pfun;
+V_FP_CHARP arpf[4] = {toupper,tplowe,transpose};//虽然没有函数数组，但是可以有函数指针数组
+~~~
+
 ---
+
 ### 第15章
 
 ---
@@ -1906,3 +2220,4 @@ ANSI C规定，对于文本模式，ftell()返回值可以作为fseek()的第二
 ### 第17章
 
 ---
+

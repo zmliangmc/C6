@@ -74,10 +74,10 @@ int clean_distortion(int (*a)[COLS], int rows, int x, int y)
         {
             ++cnt, average += a[dx][dy];
         }
-        if (cnt != sur)
-            return a[x][y];
-        return 1.0 * average / cnt + 0.5;
     }
+    if (cnt != sur)
+        return a[x][y];
+    return 1.0 * average / cnt + 0.5;
 }
 void change(int (*a)[COLS], char (*b)[COLS], int rows)
 {
