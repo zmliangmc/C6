@@ -125,11 +125,19 @@ int main(void)
 
 [^2]:何时使用ASCII码？何时使用转义序列？如果要在转义序列（假设使用'\f'）和ASCII码（'\014'）之间选择，请选择前者（即'\f'）。这样的写法不仅更好记，而且可移植性更高。'\f'在不使用ASCII码的系统中，仍然有效。如果要使用ASCII码，为何要写成'\032'(032表示十进制数)而不是032？首先，'\032'能更清晰地表达程序员使用字符编码的意图。其次，类似\032这样的转义序列可以嵌入C的字符串中，如`printf("Hello!\007\n");`中就嵌入了\007
 
-**float、double和float double**
+**float、double和long double**
 
 - 计算机中采用一般记数法和指数记数法
 - C标准规定，float必须至少表示6位有效数字(必须至少精确表示小数点后的6位有效数字)，取值范围是10^-37^~10^+37^  占用32位
 - double 双精度  和float的最小取值范围一样，至少表示10位有效数字
+
+~~~c
+MinGW虽然不需要任何第三方的运行库，但是需要微软的运行库，其中包括了MSVCRT.DLL以及其他的微软C语言运行库。所以GCC编译后的程序还是运行在MSVC运行库上的程序。
+同时又由于32位的MSVC并不支持更高精度的double类型（在32位的MSVC中long double与double的精度均为8字节=64bit），而GCC在32位的操作系统中long double是12字节=96bit，64位更是16字节=128bit，所以就出现了不兼容的问题。
+简单来讲就是如果你用MSVC跑代码，不管写double还是long double，他们都只占用64bit。所以他俩是一样的，所以运行后不会出错。
+而MinGW的double是64bit的，而long double是128bit（long double其实表示 80bit 扩展精度浮点数。但为了字节对齐所以就分配成了128bit，多余的bit全部填 0）。
+而MinGW实际上还是依靠在MSVC上的，所以使用MinGW跑long double的时候就出现问题了，MSVC只支持64bit的long double，而MinGW的long double是128bit的。所以出现了冲突，不兼容。直接给你打印0.00000
+~~~
 
 浮点数的上溢
 
@@ -1779,7 +1787,7 @@ fprintf()和 fscanf()的工作方式与 printf()和 scanf()类似。但是，与
 
 **fgets()和fputs()**
 
-`char * fgets(**char \*_Buffer**, int _MaxCount, FILE *_Stream)`
+`char * fgets(char *_Buffer, int _MaxCount, FILE *_Stream)`
 
 `int __cdecl fputs(const char *_Buffer, FILE *_Stream)`
 
@@ -2263,11 +2271,11 @@ V_FP_CHARP arpf[4] = {toupper,tplowe,transpose};//虽然没有函数数组，但
     - 只要两位中的值不同时，结果就为1；两位值相同，其结果就为0
     
 - 掩码
-    
+  
     - 掩码指的是一些设置为开或关的位的组合；按位与运算常用于掩码
     
 - 打开位（设置位）
-    
+  
     - 按位或操作常用来打开一个值中的特定位，根据mask中值为1的位，把flags中对应的位设置为1
     
 - 关闭位（清空位）
@@ -2352,6 +2360,401 @@ stdalign.h 头文件后，就可以把 alignas 和 alignof 分别作为\_Alignas
 
 ---
 ### 第16章
+
+> C预处理器和C库
+
+**翻译程序第一步**
+
+在预处理之前，编译器必须对程序进行一些翻译处理
+
+	- 编译器把源代码中出现的字符映射到源字符集。该过程处理多字节字符和三字符序列
+	- 编译器定位每个反斜杠后面跟着换行符的实例，并删除他们。即把多个物理行翻译为一个逻辑行
+	- 编译器把文本划分成预处理记号序列、空白序列和注释序列（记号是由空格、制表符或换行符分隔的项）。
+
+**明示常量：#define（符号常量）**
+
+#define预处理器指令和其他预处理器指令一样，以#号作为一行的开始。ANSI和后来的标准都允许#号前面有空格或制表符，而且还允许在#和指令的其余部分之间有空格。但是旧版本的C要求指令从一行最左边开始，而且#和指令其余部分之间不能有空格。
+
+指令可以出现在源文件的任何地方，其定义从指令出现的地方到文件结尾都有效
+
+每行#define都由3部分组成。第一部分是#define指令本身；第二部分是选定的缩写，也称为宏，有类对象宏，代表值，有类函数宏；第三部分称为替换列表或替换体。
+
+~~~c
+#define TWO 2;
+#define FOUR TWO*TWO;
+#define FMT "X is %d";
+int x=FOUR;
+x=TWO*TWO;
+X=2*2;// 宏展开到此为止，由于编译器在编译期对所有常量表达式求值，所以预处理器不会进行实际的乘法运算
+/*预处理器不做计算，不对表达式求值，它只进行替换*/
+printf(FMT,x);
+const char *fmt = "x is %d";
+~~~
+
+C语言现在也支持const关键字，提供了更灵活的方法。用const可以创建在程序运行过程中不能改变的变量，可具有文件作用域或块作用域。另一方面，宏常量可用于指定标准数组的大小和const变量的初始值。
+
+~~~c
+#define LIMIT 20;
+const int LIM=50;
+static int data1[LIMIT];// 有效
+static int data2[LIM];// 无效 const不可修改变量不能作为数组大小，数组大小必须为整形常量的组合（c++可以为把const值作为常量表达式的一部分）
+const int LIM2=2*LIMIT;// 有效
+const int lim3=2*LIM;// 在文件作用域无效，在块作用域有效
+~~~
+
+**记号**
+
+从技术角度来看，可以把宏的替换体看作是记号型字符串，而不是字符型字符串
+
+~~~c
+#define FOUR 2*2;//一个记号
+#define SIX 2 * 3;//三个记号
+~~~
+
+C编译器处理记号的方式比预处理器复杂。由于编译器理解C语言的规则，所以不要求代码中用空格来分隔记号。例如，C编译器可以把2\*2直接视为3个记号，因为它可以识别2是常量，*是运算符。
+
+**重定义常量**
+
+ANSI标准规定，只有新定义和旧定义完全相同才允许重定义。如果需要重定义可以使用#undef
+
+~~~c
+#define SIX 2 * 3;
+#define SIX 2*3;//与上面个的宏定义不同；
+~~~
+
+**在#define中使用参数**
+
+`#define SQUARE(X) X*X;`在程序中可以这样用`z=SQUARE(2)`;
+
+**用宏参数创建字符串：#运算符**
+
+C允许在字符串中包含宏参数。在类函数宏的替换体中，#号作为一个预处理运算符，可以把记号转换成字符串。例如，如果x是一个宏形参，那么#x就是转换为字符串"x"的形参名。这个过程称为字符串化
+
+~~~c
+#include <stdio.h>
+#define PSQR(x) printf("The square of " #x " is %d.\n",((x)*(x)))
+int main(void){
+int y = 5;
+PSQR(y);//The square of y is 25.
+PSQR(2 + 4);//The square of 2 + 4 is 36.
+return 0;
+}
+~~~
+
+**预处理器黏合剂：##运算符**
+
+与#运算符类似，##运算符可用于类函数宏的替换部分。而且，##还可用于对象宏的替换部分。##运算符把两个记号组合成一个记号。例如，可以这样做：#define XNAME(n) x ## n
+
+~~~c
+#include <stdio.h>
+#define XNAME(n) x##n
+#define PRINT_XN(n) printf("x" #n "=%d\n", x##n);
+int main(int argc, char const *argv[]){
+    int XNAME(1) = 14; // int x1=14
+    int XNAME(2) = 20; // int x2=20;
+    int x3 = 30;
+    PRINT_XN(1); // printf("x" "1" "=%d\n", x1);
+    PRINT_XN(2); // printf("x" "2" "=%d\n", x2);
+    PRINT_XN(3); // printf("x" "3" "=%d\n", x3);
+    return 0;
+}
+~~~
+
+**变参宏：...和_\_VA\_ARGS\_\_**
+
+_ \_VA_ARGS_ \_可用在**替换部分**中，表明省略号代表什么。例如，下面的定义：#define PR(...) printf(\_ \_VA_ARGS_ _);省略号只能代替最后的宏参数。
+
+`#define WRONG(X,...,Y) #X__VA_ARGS__#Y`// 不能这样做
+
+**宏和函数选择**
+
+宏和函数的选择实际上是时间和空间的权衡。宏生成内联代码，即在程序中生成语句。如果调用20次宏，即在程序中插入20行代码。如果调用函数20次，程序中只有一份函数语句的副本，所以节省了空间。然而另一方面，程序的控制必须跳转至函数内，随后再返回主调程序，这显然比内联代码花费更多的时间。
+
+**文件包含：#include**
+
+当预处理器发现#include 指令时，会查看后面的文件名并把文件的内容包含到当前文件中，即替换源文件中的#include指令。这相当于把被包含文件的全部内容输入到源文件#include指令所在的位置。
+
+~~~c
+#include <stdio.h>　　　　 //文件名在尖括号中 查找系统目录
+#include "mystuff.h"　　　//文件名在双引号中  查找当前工作目录
+#include "/usr/biff/p.h" // 查找指定目录文件
+~~~
+
+**#undef指令**
+
+#undef指令用于取消已定义的#define指令。
+
+~~~c
+#define LIMIT 40;
+#undef LIMIT;// 在此语句之前的代码中LIMIT 均有效
+~~~
+
+**从预处理器角度看已定义**
+
+~~~c
+#define LIMIT 1000; // LIMIT 是已定义的
+#define GOOD;  // 已定义的
+#define A(X) ((-X))*(X)); // 已定义的
+int q;  // 未定义的
+#undef GOOD; // good取消定义，是未定义的
+~~~
+
+**条件编译**
+
+#ifdef、#else、#endif
+
+~~~c
+#ifdef GOOD // #ifndef与之相反
+#include "a.h"
+#define MM 20
+#else
+#include "b.h"
+#define MM 10
+#endif
+~~~
+
+#if、#elif
+
+~~~c
+#if GOOD == 1
+#include "a.h"
+#elif GOOD == 2
+#include "b.h"
+#else
+#include "c.h"
+#endif
+~~~
+
+**预定义宏**
+
+| 宏                 | 含义                                                         |
+| ------------------ | ------------------------------------------------------------ |
+| _\_DATE__          | 预处理的日期（“Mmm dd yyyy”形式的字符串字面量，如 Otc 23 2022） |
+| \__FILE__          | 表示当前源代码文件名的字符串常量                             |
+| \__LINE__          | 表示当前源代码文件中行号的整型常量                           |
+| \__STDC__          | 设置为1时，表明实现遵循C标准                                 |
+| \__STDC\_HOSTED__  | 本机环境设置为1，否则设置为0                                 |
+| \__STDC\_VERSION__ | 支持C99，设置为19990L；支持C11；设置为201112L                |
+| \__TIME__          | 翻译代码的时间，格式为“hh:mm:ss"                             |
+
+C99 标准提供一个名为\__ func\__ 的预定义标识符，它展开为一个代表函数名的字符串（该函数包含该标识符）。那么，\_\_ func\_\_必须具有函数作用域，而从本质上看宏具有文件作用域；\__ func\__是预定义标识符，而不是预定义宏
+
+~~~c
+#include <stdio.h>
+void why_me();
+int main(int argc, char const *argv[]){
+    printf("the file is %s\n", __FILE__);//the file is .\code\ch16\16_7.c
+    printf("the date is %s\n", __DATE__);//the date is Aug 30 2022
+    printf("the time is %s\n", __TIME__);//the time is 21:58:35
+    printf("the version is %ld\n", __STDC_VERSION__);//the version is 201710
+    printf("the func is %s\n", __func__);//the func is main
+    printf("the line is %d\n", __LINE__);//the line is 9
+    why_me();
+    return 0;
+}
+void why_me(){
+    printf("the func is %s\n", __func__);//the func is why_me
+    printf("the line is %d\n", __LINE__);//the line is 17
+}
+~~~
+
+**#line和#error**
+
+#line指令重置\_ _LINE\_ _和\_ _FILE\_ _宏报告的行号和文件名。
+
+~~~c
+#line 20 "cool.c"
+~~~
+
+#error 指令让预处理器发出一条错误消息，该消息包含指令中的文本。
+
+~~~c
+#if __STDC_VERSION__ != 201710L
+#error Not c99
+#endif
+gcc -std=c99  .\code\ch16\16_7.c
+.\code\ch16\16_7.c:5:2: error: #error Not c99
+~~~
+
+**#pragram**
+
+#pragma把编译器指令放入源代码中。例如，在开发C99时，标准被称为C9X，可以使用下面的编译指示（pragma）让编译器支持C9X：`#pragma c9x on`
+
+C99还提供_Pragma预处理器运算符，该运算符把字符串转换成普通的编译指示。
+
+~~~c
+_Pragma("nonstandardtreatmenttypeB on")
+#pragma nonstandardtreatmenttypeB on
+~~~
+
+**泛型选择（C11）**
+
+在程序设计中，泛型编程（generic programming）指那些没有特定类型，但是一旦指定一种类型，就可以转换成指定类型的代码。例如，C++在模板中可以创建泛型算法，然后编译器根据指定的类型自动使用实例化代码。C没有这种功能。然而，C11新增了一种表达式，叫作泛型选择表达式（generic selection expression），可根据表达式的类型（即表达式的类型是int、double 还是其他类型）选择一个值。泛型选择表达式不是预处理器指令，但是在一些泛型编程中它常用作#define宏定义的一部分。
+
+~~~c
+#include <stdio.h>
+#define MYTYPE(X) _Generic((X), int          \
+                           : "int", float    \
+                           : "float", double \
+                           : "double", long  \
+                           : "long", default \
+                           : "other")
+int main(int argc, char const *argv[])
+{
+    int a;
+    printf("%s\n", MYTYPE(5));
+    printf("%s\n", MYTYPE(2.0));
+    printf("%s\n", MYTYPE(3L));
+    printf("%s\n", MYTYPE(&a));
+    return 0;
+}
+~~~
+
+**内联函数（C99）**
+
+通常，函数调用都有一定的开销，因为函数的调用过程包括建立调用、传递参数、跳转到函数代码并返回。使用宏使代码内联，可以避免这样的开销。C99还提供另一种方法：内联函数（inline function）。
+
+“把函数变成内联函数建议尽可能快地调用该函数，其具体效果由实现定义”。因此，把函数变成内联函数，编译器可能会用内联代码替换函数调用，并（或）执行一些其他的优化，但是也可能不起作用。
+
+最简单的方法是使用函数说明符 inline 和存储类别说明符static。效果相当于在函数调用的位置输入函数体中的代码
+
+**_Noreturn函数（C11）**
+
+C99新增inline关键字时，它是唯一的函数说明符（extern和static是存储类别说明符，可用于数据对象和函数）
+
+C11新增了第二个函数说明符_Noreturn，表明调用完成后函数不返回主调函数。exit()函数是\_Noreturn函数的一个实例，一旦调用exit()，它不会再返回主调函数。
+
+_Noreturn的目的是告诉用户和编译器，这个特殊的函数不会把控制返回主调程序。告诉用户以免滥用该函数，通知编译器可优化一些代码。
+
+**C库**
+
+ - 数学库（math.h)
+
+   | 原型                            | 描述（1弧度=180/Π=57.296°）         |
+   | ------------------------------- | ----------------------------------- |
+   | double acos(double x)           | 返回余弦值x的角度（0~Π的弧度）      |
+   | double asin(double x)           | 返回正弦值x的角度（-Π/2~Π/2的弧度） |
+   | double atan(double x)           | 返回正切值x的角度（-Π/2~Π/2的弧度） |
+   | double atan2(double y,double x) | 返回正切值y/x的角度（-Π~Π的弧度）   |
+   | double cos(double x)            | 返回x的余弦值，x单位为弧度          |
+   | double sin(double x)            | 返回x的正弦值，x单位为弧度          |
+   | double tan(double x)            | 返回x的正切值，x单位为弧度          |
+   | double exp(double x)            | 返回x的指数函数的值（e^x^)          |
+   | double log(double x)            | 返回x的自然对数值                   |
+   | double log10(double x)          | 返回x的以10为底的对数值             |
+   | double pow(double x,double y)   | 返回x的y次幂                        |
+   | double sqrt(double x)           | 返回x的平方根值                     |
+   | double cbrt(double x)           | 返回x的立方根值                     |
+   | double cell(double x)           | 返回不小于x的最小整数值，即向下取整 |
+   | double fabs(double x)           | 返回x的绝对值                       |
+   | double floor(double x)          | 返回不大于x的最大整数值             |
+   
+- 类型变体
+
+    基本的浮点型数学函数接受double类型的参数，并返回double类型的值。当然，也可以把float或 long double 类型的参数传递给这些函数，它们仍然能正常工作，因为这些类型的参数会被转换成double类型。
+
+    long double类型的值传递给double类型的形参会损失精度
+
+- tgmath.h库（C99）
+
+    C99标准提供的tgmath.h头文件中定义了泛型类型宏；eg：根据提供的参数类型，定义 sqrt()宏展开为
+    sqrtf()、sqrt()或 sqrtl()函数。
+
+**通用工具库**
+
+ - exit()和atexit()
+
+     - atexit()函数使用函数指针，atexit()注册函数列表中的函数，当调用exit()时就会执行这些函数。ANSI保证，在这个列表中至少可以放32个函数。最后调用 exit()函数时，exit()会执行这些函数（执行顺序与列表中的函数顺序相反，即最后添加的函数最先执行）。
+     - atexit()注册的函数（如sign_off()和too_bad()）应该不带任何参数且返回类型为void。通常，这些函数会执行一些清理任务，例如更新监视程序的文件或重置环境变量。
+     - exit()执行完atexit()指定的函数后，会完成一些清理工作：刷新所有输出流、关闭所有打开的流和关闭由标准I/O函数tmpfile()创建的临时文件。然后exit()把控制权返回主机环境，如果可能的话，向主机环境报告终止状态。
+
+- qsort()快速排序
+
+    - `void qsort (void *base,size_t nmemb,size_t size,int (*compar)(const void *,const void*));`
+
+    - 第1个参数是指针，指向待排序数组的首元素。
+
+    - 第2个参数是待排序项的数量
+
+    - 第3个参数指明待排序数组中每个元素的大小
+
+    - 第4个参数是指向函数的指针，这个被指针指向的比较函数用于确定排序的顺序，该函数应接受两个参数：分别指向待比较两项的指针。如果第1项的值大于第2项，比较函数则返回正数；如果两项相同，则返回0；如果第1项的值小于第2项，则返回负数
+
+        ~~~c
+        /*结构数组的比较*/
+        qsrt(stuff,NUM,sizeof(struct names),mycomp);
+        int mycomp(const void*p1,const *void p2)
+        {
+            const struct names *ps1==(const struct name*)p1;
+            const struct names *ps2==(const struct name*)p2;
+            int res;
+            res = strcmp(ps1->first,ps2->first);
+            if(res!=0)
+                return res;
+            else
+                return strcmp(ps1->last,ps2->last);
+        }
+        ~~~
+
+**断言库(assert.h)**
+
+ - assert()
+
+    assert头文件支持的断言库是一个用于辅助调试程序的小型库。它由assert()宏组成，接受一个整型表达式作为参数。如果表达式为假（非零），assert()宏就在标准错误流中写入一条错误信息，并调用abort()函数终止程序（abort在stdlib.h文件中）assert（）宏是为了标识出程序中某些条件为真的关键位置，如果其中的一个具体条件为假，就用assert（）语句终止程序。通常assert（）参数是一个条件表达式或逻辑表达式。如果assert（）中止了程序，它首先会显示失败的测试、包含测试的文件和行号。
+   
+   ~~~C
+   #include <stdio.h>
+   #include <math.h>
+   #define NDEBUG // 如果认为已经排除了bug，就可以把该宏定义写到assert.h的位置前面
+   #include <assert.h>
+   int main(int argc, char const *argv[]){
+       int x, y;
+       double z;
+       while ((scanf("%d%d", &x, &y)) == 2 && (x != 0 || y != 0)){
+           z = x * x - y * y;
+           assert(z > 0);
+           printf("answer is %f", sqrt(z));
+           puts("next pair of numbers:");
+       }
+       puts("done");
+       return 0;
+   }
+   Assertion failed!
+   Program: C:\Users\liang\Documents\C\project\C6\a.exe
+   File: .\code\ch16\16_12.c, Line 11
+   Expression: z > 0
+   ~~~
+   
+- \_Static_assert（C11）
+
+    assert()表达式是在运行时进行检查。\_Static_assert可以在编译时检查assert()表达式。assert()可以导致正在运行的程序停止，而\_Static_assert可以导致程序无法通过编译。_Static_assert()接受两个参数。第1个参数是整型常量表达式，第2个参数是一个字符串。
+
+    ~~~c
+    #include <stdio.h>
+    #include <limits.h>
+    _Static_assert(CHAR_BIT == 16, "16-bit char falsely assumed");
+    int main(void){
+        puts("char is 16 bits.");
+        return 0;
+    }
+    error: static assertion failed: "16-bit char falsely assumed"
+    ~~~
+
+**string.h库中的memcpy()和memmove()**
+
+`void *memcpy(void *restrict s1,const void*restrict s2,size_t n);`数组存储区域重叠时会导致数据有误
+
+`void *memmove(void *s1,const void*s2,size_t n);`先把数据拷贝到一个临时缓冲区，然后再拷贝到最终目的地。两者都不关系数据类型
+
+**可变参数：stdarg.h**
+
+- 提供一个使用省略号的函数原型，至少有一个形参和一个省略号，最右边的形参（即省略号的前一个形参）起着特殊的作用，标准中用parmN这个术语来描述该形参。传递给该形参的实际参数是省略号部分代表的参数数量。
+- 在函数定义中创建一个va_list类型的变量；va_list类型代表一种用于储存形参对应的参列表中省略号部分的数据对象。`va_list ap;//声明一个储存参数的对象`;
+- 用宏把该变量初始化为一个参数列表;`va_start(ap, lim);// 把ap初始化为参数列表`
+- 用宏访问参数列表;如果参数列表中的第1个参数是double类型，第2个参数是int类型,`tic = va_arg(ap, double);　// 检索第1个参数`,`toc = va_arg(ap, int);//检索第2个参数`注意：参数不会进行自动数据类型转换
+- 用宏完成清理工作，使用va_end()宏完成清理工作，`va_end(ap); // 清理工作`
+
+`va_copy(apcopy, ap);// 把apcopy作为ap的副本`即使删除了ap，也可以从apcopy中检索参数
 
 ---
 ### 第17章
